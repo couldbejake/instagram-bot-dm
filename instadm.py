@@ -20,7 +20,7 @@ from time import time, sleep
 import logging
 import sqlite3
 
-DEFAULT_IMPLICIT_WAIT = 30
+DEFAULT_IMPLICIT_WAIT = 3
 
 class InstaDM(object):
 
@@ -149,15 +149,15 @@ class InstaDM(object):
             self.__random_sleep__()
 
         if self.__wait_for_element__(self.selectors['send'], "xpath"):
-            self.__remove_browser_unsupported_banner_if_exists()
+            #self.__remove_browser_unsupported_banner_if_exists()
             self.__get_element__(self.selectors['send'], "xpath").click()
-            self.__random_sleep__(3, 5)
+            self.__random_sleep__(1, 2)
             print('Message sent successfully')
 
     def sendMessage(self, user, message, greeting=None):
         logging.info(f'Send message to {user}')
         print(f'Send message to {user}')
-        self.driver.get('https://www.instagram.com/direct/new/?hl=en')
+        self.driver.get('https://www.instagram.com/direct/new/')
         self.__random_sleep__(5, 7)
 
         #try:
@@ -187,7 +187,7 @@ class InstaDM(object):
                 if self.conn is not None:
                     self.cursor.execute('INSERT INTO message (username, message) VALUES(?, ?)', (user, message))
                     self.conn.commit()
-                self.__random_sleep__(50, 60)
+                self.__random_sleep__(1, 4)
 
                 return True
 
@@ -363,9 +363,10 @@ class InstaDM(object):
             print(f'Exception when __typeSlow__ : {e}')
 
     def __random_sleep__(self, minimum=10, maximum=20):
-        t = randint(minimum, maximum)
+        #t = randint(minimum, maximum)
+        t = 1
         logging.info(f'Wait {t} seconds')
-        sleep(minimum)
+        sleep(1)
 
     def __scrolldown__(self):
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -373,17 +374,3 @@ class InstaDM(object):
     def teardown(self):
         self.driver.close()
         self.driver.quit()
-
-    def __remove_browser_unsupported_banner_if_exists(self):
-        element = self.__get_element__('rh7Wz', 'CLASS')
-        if element is not None:
-            self.driver.execute_script("""
-                                var element = arguments[0];
-                                element.parentNode.removeChild(element);
-                                """, element)
-        element = self.__get_element__('vohlx', 'CLASS')
-        if element is not None:
-            self.driver.execute_script("""
-                                var element = arguments[0];
-                                element.parentNode.removeChild(element);
-                                """, element)

@@ -11,7 +11,7 @@ base_dir = os.path.dirname(__file__)
 
 setup(
     name="instadm",
-    version='0.0.2',
+    version='0.0.3',
     author="Toche Camille",
     author_email="tochecamille@gmail.com",
     url="https://github.com/CamTosh/instagram-bot-dm",
