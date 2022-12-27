@@ -5,6 +5,16 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
+
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+
+import undetected_chromedriver.v2 as uc
+
+from selenium.webdriver import ActionChains
+
 from random import randint, uniform
 from time import time, sleep
 import logging
@@ -18,10 +28,10 @@ class InstaDM(object):
         self.selectors = {
             "accept_cookies": "//button[text()='Allow essential and optional cookies']",
             "accept_cookies_post_login": "//button[text()='Allow all cookies']",
-            "home_to_login_button": "//button[text()='Log In']",
+            "home_to_login_button": "//div[text()='Log in']",
             "username_field": "username",
             "password_field": "password",
-            "button_login": "//button/*[text()='Log In']",
+            "button_login": "//button/*[text()='Log in']",
             "login_check": "//*[@aria-label='Home'] | //button[text()='Save Info'] | //button[text()='Not Now']",
             "search_user": "queryBox",
             "select_user": '//div[text()="{}"]',
@@ -35,19 +45,16 @@ class InstaDM(object):
         options = webdriver.ChromeOptions()
 
         if profileDir:
-            options.add_argument("user-data-dir=profiles/" + profileDir)
+            options.add_argument('--user-data-dir=' + profileDir)
+
 
         if headless:
             options.add_argument("--headless")
+        
 
-        mobile_emulation = {
-            "userAgent": 'Mozilla/5.0 (Linux; Android 4.0.3; HTC One X Build/IML74K) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/99.0.4844.51 Mobile Safari/535.19'
-        }
-        options.add_experimental_option("mobileEmulation", mobile_emulation)
-
-        self.driver = webdriver.Chrome(executable_path=CM().install(), options=options)
+        self.driver = uc.Chrome(executable_path=CM().install(), options=options)
         self.driver.set_window_position(0, 0)
-        self.driver.set_window_size(414, 736)
+        self.driver.set_window_size(1000, 800)
 
         # Instapy init DB
         self.instapy_workspace = instapy_workspace
@@ -74,11 +81,13 @@ class InstaDM(object):
                     );
                 """)
 
-        try:
-            self.login(username, password)
-        except Exception as e:
-            logging.error(e)
-            print(str(e))
+        self.driver.get('https://instagram.com/?hl=en')
+
+        #try:
+        #self.login(username, password)
+        #except Exception as e:
+        #    logging.error(e)
+        #    print(str(e))
 
     def login(self, username, password):
         # homepage
@@ -88,7 +97,12 @@ class InstaDM(object):
             self.__get_element__(self.selectors['accept_cookies'], 'xpath').click()
             self.__random_sleep__(3, 5)
         if self.__wait_for_element__(self.selectors['home_to_login_button'], 'xpath', 10):
-            self.__get_element__(self.selectors['home_to_login_button'], 'xpath').click()
+
+
+            button = self.__get_element__(self.selectors['home_to_login_button'], 'xpath')
+
+            el = self.driver.execute_script("arguments[0].click();", button)
+
             self.__random_sleep__(5, 7)
 
         # login
@@ -97,9 +111,14 @@ class InstaDM(object):
         if not self.__wait_for_element__(self.selectors['username_field'], 'name', 10):
             print('Login Failed: username field not visible')
         else:
-            self.driver.find_element_by_name(self.selectors['username_field']).send_keys(username)
-            self.driver.find_element_by_name(self.selectors['password_field']).send_keys(password)
-            self.__get_element__(self.selectors['button_login'], 'xpath').click()
+            self.driver.find_element(By.NAME, self.selectors['username_field']).send_keys(username)
+            self.driver.find_element(By.NAME, self.selectors['password_field']).send_keys(password)
+
+
+
+            button = self.__get_element__(self.selectors['button_login'], 'xpath')
+            el = self.driver.execute_script("arguments[0].click();", button)
+
             self.__random_sleep__()
             if self.__wait_for_element__(self.selectors['login_check'], 'xpath', 10):
                 print('Login Successful')
@@ -141,16 +160,21 @@ class InstaDM(object):
         self.driver.get('https://www.instagram.com/direct/new/?hl=en')
         self.__random_sleep__(5, 7)
 
+        #try:
+        self.__wait_for_element__(self.selectors['search_user'], "name")
+        self.__type_slow__(self.selectors['search_user'], "name", user)
+        self.__random_sleep__(7, 10)
+
+        if greeting != None:
+            greeting = self.createCustomGreeting(greeting)
+
+        self.__random_sleep__(1, 3)
+
+        # Select user from list
+        elements = self.driver.find_elements(by=By.XPATH, value=self.selectors['select_user'].format(user))
+
         try:
-            self.__wait_for_element__(self.selectors['search_user'], "name")
-            self.__type_slow__(self.selectors['search_user'], "name", user)
-            self.__random_sleep__(7, 10)
 
-            if greeting != None:
-                greeting = self.createCustomGreeting(greeting)
-
-            # Select user from list
-            elements = self.driver.find_elements_by_xpath(self.selectors['select_user'].format(user))
             if elements and len(elements) > 0:
                 elements[0].click()
                 self.__random_sleep__()
@@ -171,7 +195,7 @@ class InstaDM(object):
             else:
                 print(f'User {user} not found! Skipping.')
                 return False
-            
+                
         except Exception as e:
             logging.error(e)
             return False
@@ -194,7 +218,7 @@ class InstaDM(object):
                 self.__random_sleep__()
 
                 # Select user from list
-                elements = self.driver.find_elements_by_xpath(self.selectors['select_user'].format(user))
+                elements = self.driver.driver.find_element(by=By.XPATH, value=self.selectors['select_user'].format(user))
                 if elements and len(elements) > 0:
                     elements[0].click()
                     self.__random_sleep__()
@@ -263,15 +287,15 @@ class InstaDM(object):
             locator = locator.upper()
             dr = self.driver
             if locator == 'ID' and self.is_element_present(By.ID, element_tag):
-                return WebDriverWait(dr, 15).until(lambda d: dr.find_element_by_id(element_tag))
+                return self.driver.find_element(By.ID, element_tag)
             elif locator == 'NAME' and self.is_element_present(By.NAME, element_tag):
-                return WebDriverWait(dr, 15).until(lambda d: dr.find_element_by_name(element_tag))
+                return self.driver.find_element(By.NAME, element_tag)
             elif locator == 'XPATH' and self.is_element_present(By.XPATH, element_tag):
-                return WebDriverWait(dr, 15).until(lambda d: dr.find_element_by_xpath(element_tag))
+                return self.driver.find_element(By.XPATH, element_tag)
             elif locator == 'CSS' and self.is_element_present(By.CSS_SELECTOR, element_tag):
-                return WebDriverWait(dr, 15).until(lambda d: dr.find_element_by_css_selector(element_tag))
+                return self.driver.find_element(By.CSS_SELECTOR, element_tag)
             elif locator == 'CLASS' and self.is_element_present(By.CLASS_NAME, element_tag):
-                return WebDriverWait(dr, 15).until(lambda d: dr.find_element_by_class_name(element_tag))
+                return self.driver.find_element(By.CLASS_NAME, element_tag)
             else:
                 logging.info(f"Error: Incorrect locator = {locator}")
         except Exception as e:
@@ -313,7 +337,7 @@ class InstaDM(object):
                 logging.error(e)
                 print(f"Exception when __wait_for_element__ : {e}")
 
-            sleep(1 - (time() - initTime))
+            sleep(1)
         else:
             print(f"Timed out. Element not found with {locator} : {element_tag}")
         self.driver.implicitly_wait(DEFAULT_IMPLICIT_WAIT)
@@ -341,7 +365,7 @@ class InstaDM(object):
     def __random_sleep__(self, minimum=10, maximum=20):
         t = randint(minimum, maximum)
         logging.info(f'Wait {t} seconds')
-        sleep(t)
+        sleep(minimum)
 
     def __scrolldown__(self):
         self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
